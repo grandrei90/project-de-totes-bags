@@ -16,6 +16,7 @@ import pandas as pd
 import io
 from botocore.exceptions import ClientError
 import logging
+from pprint import pprint
 
 logger = logging.getLogger('MyLogger')
 logger.setLevel(logging.INFO)
@@ -223,8 +224,14 @@ def create_and_push_parquet(data_frame, file_name):
     try:
         # Save DataFrame to a parquet file in memory
         parquet_buffer = io.BytesIO()
-        data_frame.to_parquet(parquet_buffer, engine='pyarrow')
+    
+        orig_close = parquet_buffer.close
+        parquet_buffer.close = lambda: None
 
+        data_frame.to_parquet(parquet_buffer, engine='fastparquet', index=False)
+        parquet_buffer.close = orig_close
+
+        pprint(parquet_buffer)
         # Connect to S3 client
         s3 = boto3.client('s3')
 
